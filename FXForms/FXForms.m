@@ -1777,16 +1777,24 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
         if ([self isKindOfClass:fieldClass])
         {
             id collection = self;
+			NSMutableArray *array = [NSMutableArray array];
+			
             if (fieldClass == [NSDictionary class])
             {
-                collection = [collection allValues];
-            }
-            NSMutableArray *array = [NSMutableArray array];
-            for (id object in collection)
-            {
-                NSString *description = [object fieldDescription];
-                if ([description length]) [array addObject:description];
-            }
+				NSArray	*allKeys	= [[collection allKeys] sortedArrayUsingSelector: @selector(caseInsensitiveCompare:)];
+				
+				for (NSString *key in allKeys) {
+					id			object			= [collection valueForKey: key];
+					NSString	*description	= [object fieldDescription];
+					if ([description length]) [array addObject:description];
+				}
+			} else {
+				for (id object in collection)
+				{
+					NSString *description = [object fieldDescription];
+					if ([description length]) [array addObject:description];
+				}
+			}
             return [array componentsJoinedByString:@", "];
         }
     }
