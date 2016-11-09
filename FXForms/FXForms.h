@@ -138,7 +138,7 @@ UIKIT_EXTERN NSString *const FXFormFieldTypeImage; //image
 @end
 
 
-@interface FXFormController : NSObject
+@interface FXFormController : NSObject<UITableViewDataSource, UITableViewDelegate>
 
 @property (nonatomic, strong) IBOutlet UITableView *tableView;
 @property (nonatomic, strong) FXFormController *parentFormController;
@@ -165,14 +165,14 @@ UIKIT_EXTERN NSString *const FXFormFieldTypeImage; //image
 @end
 
 
-@protocol FXFormFieldViewController <NSObject>
+@protocol FXFormFieldViewControllerProtocol <NSObject>
 
 @property (nonatomic, strong) FXFormField *field;
 
 @end
 
 
-@interface FXFormViewController : UIViewController <FXFormFieldViewController, FXFormControllerDelegate>
+@interface FXFormViewController : UIViewController <FXFormFieldViewControllerProtocol, FXFormControllerDelegate>
 
 @property (nonatomic, readonly) FXFormController *formController;
 @property (nonatomic, strong) IBOutlet UITableView *tableView;
@@ -200,6 +200,8 @@ UIKIT_EXTERN NSString *const FXFormFieldTypeImage; //image
 
 @property (nonatomic, readonly) UITableViewCell <FXFormFieldCell> *nextCell;
 
+- (UITableView *)tableView;
+
 - (void)setUp;
 - (void)update;
 - (void)didSelectWithTableView:(UITableView *)tableView
@@ -223,6 +225,8 @@ UIKIT_EXTERN NSString *const FXFormFieldTypeImage; //image
 @interface FXFormTextViewCell : FXFormBaseCell
 
 @property (nonatomic, readonly) UITextView *textView;
+
+- (void)updateFieldValue;
 
 @end
 
@@ -259,6 +263,9 @@ UIKIT_EXTERN NSString *const FXFormFieldTypeImage; //image
 
 @property (nonatomic, readonly) UIImageView *imagePickerView;
 @property (nonatomic, readonly) UIImagePickerController *imagePickerController;
+@property (nonatomic, weak) UIViewController *controller;
+
+- (UIImage *)imageValue;
 
 @end
 

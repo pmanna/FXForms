@@ -33,7 +33,6 @@
 #import "FXForms.h"
 #import <objc/runtime.h>
 
-
 #pragma clang diagnostic ignored "-Wobjc-missing-property-synthesis"
 #pragma clang diagnostic ignored "-Wdirect-ivar-access"
 #pragma clang diagnostic ignored "-Warc-repeated-use-of-weak"
@@ -1941,19 +1940,19 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
 
 - (void)registerDefaultViewControllerClass:(Class)controllerClass
 {
-    NSParameterAssert([controllerClass conformsToProtocol:@protocol(FXFormFieldViewController)]);
+    NSParameterAssert([controllerClass conformsToProtocol:@protocol(FXFormFieldViewControllerProtocol)]);
     [self.controllerClassesForFieldTypes setDictionary:@{FXFormFieldTypeDefault: controllerClass}];
 }
 
 - (void)registerViewControllerClass:(Class)controllerClass forFieldType:(NSString *)fieldType
 {
-    NSParameterAssert([controllerClass conformsToProtocol:@protocol(FXFormFieldViewController)]);
+    NSParameterAssert([controllerClass conformsToProtocol:@protocol(FXFormFieldViewControllerProtocol)]);
     self.controllerClassesForFieldTypes[fieldType] = controllerClass;
 }
 
 - (void)registerViewControllerClass:(Class)controllerClass forFieldClass:(__unsafe_unretained Class)fieldClass
 {
-    NSParameterAssert([controllerClass conformsToProtocol:@protocol(FXFormFieldViewController)]);
+    NSParameterAssert([controllerClass conformsToProtocol:@protocol(FXFormFieldViewControllerProtocol)]);
     self.controllerClassesForFieldClasses[NSStringFromClass(fieldClass)] = controllerClass;
 }
 
@@ -2795,17 +2794,17 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
         else if (self.field.viewController && self.field.viewController == [self.field.viewController class])
         {
             subcontroller = [[self.field.viewController alloc] init];
-            ((id <FXFormFieldViewController>)subcontroller).field = self.field;
+            ((id <FXFormFieldViewControllerProtocol>)subcontroller).field = self.field;
         }
         else if ([self.field.viewController isKindOfClass:[UIViewController class]])
         {
             subcontroller = self.field.viewController;
-            ((id <FXFormFieldViewController>)subcontroller).field = self.field;
+            ((id <FXFormFieldViewControllerProtocol>)subcontroller).field = self.field;
         }
         else
         {
             subcontroller = [[self.field.viewController ?: [FXFormViewController class] alloc] init];
-            ((id <FXFormFieldViewController>)subcontroller).field = self.field;
+            ((id <FXFormFieldViewControllerProtocol>)subcontroller).field = self.field;
         }
         if (!subcontroller.title) subcontroller.title = self.field.title;
         if (self.field.segue)
@@ -3436,7 +3435,6 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
 @interface FXFormImagePickerCell () <UINavigationControllerDelegate, UIImagePickerControllerDelegate, UIActionSheetDelegate>
 
 @property (nonatomic, strong) UIImagePickerController *imagePickerController;
-@property (nonatomic, weak) UIViewController *controller;
 
 @end
 
