@@ -3544,7 +3544,7 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     {
         _imagePickerController = [[UIImagePickerController alloc] init];
         _imagePickerController.delegate = self;
-        _imagePickerController.allowsEditing = YES;
+        _imagePickerController.allowsEditing = NO;
     }
     return _imagePickerController;
 }
@@ -3554,29 +3554,33 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     return (UIImageView *)self.accessoryView;
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
 - (void)didSelectWithTableView:(UITableView *)tableView controller:(UIViewController *)controller
 {
     [FXFormsFirstResponder(tableView) resignFirstResponder];
     [tableView deselectRowAtIndexPath:tableView.indexPathForSelectedRow animated:YES];
     
-    if (!TARGET_IPHONE_SIMULATOR && ![UIImagePickerController isSourceTypeAvailable:UIImagePickerControllerSourceTypeCamera])
-    {
-        self.imagePickerController.sourceType = UIImagePickerControllerSourceTypePhotoLibrary;
-        [controller presentViewController:self.imagePickerController animated:YES completion:nil];
-    }
-    else if ([UIAlertController class])
+    if ([UIAlertController class])
     {
         UIAlertControllerStyle style = (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)? UIAlertControllerStyleAlert: UIAlertControllerStyleActionSheet;
         UIAlertController *alert = [UIAlertController alertControllerWithTitle:nil message:nil preferredStyle:style];
-        
-        [alert addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"Take Photo", nil) style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) {
-            [self actionSheet:nil didDismissWithButtonIndex:0];
-        }]];
-        
+		
+		[alert addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"Clear", nil) style:UIAlertActionStyleDestructive handler:^(__unused UIAlertAction *action) {
+			[self actionSheet:nil didDismissWithButtonIndex:0];
+		}]];
+		
         [alert addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"Photo Library", nil) style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) {
             [self actionSheet:nil didDismissWithButtonIndex:1];
         }]];
-        
+		
+		if (TARGET_IPHONE_SIMULATOR || [UIImagePickerController isSourceTypeAvailable:UIImagePickerControllerSourceTypeCamera]) {
+			[alert addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"Take Photo", nil) style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) {
+				[self actionSheet:nil didDismissWithButtonIndex:2];
+			}]];
+		}
+		
         [alert addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"Cancel", nil) style:UIAlertActionStyleCancel handler:NULL]];
         
         self.controller = controller;
@@ -3585,7 +3589,18 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     else
     {
         self.controller = controller;
-        [[[UIActionSheet alloc] initWithTitle:nil delegate:self cancelButtonTitle:NSLocalizedString(@"Cancel", nil) destructiveButtonTitle:nil otherButtonTitles:NSLocalizedString(@"Take Photo", nil), NSLocalizedString(@"Photo Library", nil), nil] showInView:controller.view];
+		if (TARGET_IPHONE_SIMULATOR || [UIImagePickerController isSourceTypeAvailable:UIImagePickerControllerSourceTypeCamera])
+			[[[UIActionSheet alloc] initWithTitle: nil
+										 delegate: self
+								cancelButtonTitle: NSLocalizedString(@"Cancel", nil)
+						   destructiveButtonTitle: NSLocalizedString(@"Clear", nil)
+								otherButtonTitles: NSLocalizedString(@"Photo Library", nil), NSLocalizedString(@"Take Photo", nil), nil] showInView:controller.view];
+		else
+			[[[UIActionSheet alloc] initWithTitle: nil
+										 delegate: self
+								cancelButtonTitle: NSLocalizedString(@"Cancel", nil)
+						   destructiveButtonTitle: NSLocalizedString(@"Clear", nil)
+								otherButtonTitles: NSLocalizedString(@"Photo Library", nil), nil] showInView:controller.view];
     }
 }
 
@@ -3607,17 +3622,25 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     UIImagePickerControllerSourceType sourceType = UIImagePickerControllerSourceTypePhotoLibrary;
     switch (buttonIndex)
     {
-        case 0:
-        {
-            sourceType = UIImagePickerControllerSourceTypeCamera;
-            break;
-        }
+		case 0:
+		{
+			self.field.value	= nil;
+			self.controller		= nil;
+			if (self.field.action) self.field.action(self);
+			[self update];
+			return;
+		}
         case 1:
         {
             sourceType = UIImagePickerControllerSourceTypePhotoLibrary;
             break;
         }
-        default:
+		case 2:
+		{
+			sourceType = UIImagePickerControllerSourceTypeCamera;
+			break;
+		}
+		default:
         {
             self.controller = nil;
             return;
