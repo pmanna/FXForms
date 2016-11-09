@@ -1503,34 +1503,38 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     
     //create add button
     NSString *addButtonTitle = self.field.fieldTemplate[FXFormFieldTitle] ?: NSLocalizedString(@"Add Item", nil);
-    [_fields addObject:@{FXFormFieldTitle: addButtonTitle,
-                         FXFormFieldCell: [FXFormDefaultCell class],
-                         @"textLabel.textAlignment": @(NSTextAlignmentLeft),
-                         FXFormFieldAction: ^(UITableViewCell<FXFormFieldCell> *cell) {
-        
-        FXFormField *field = cell.field;
-        FXFormController *formController = field.formController;
-        UITableView *tableView = formController.tableView;
-        
-        [tableView beginUpdates];
-        
-        NSIndexPath *indexPath = [tableView indexPathForCell:cell];
-        FXFormSection *section = formController.sections[indexPath.section];
-        [section addNewField];
+	
+	// only if there's indeed a title, otherwise skip (array items will be created somewhere else)
+	if (addButtonTitle.length > 0) {
+		[_fields addObject:@{FXFormFieldTitle: addButtonTitle,
+	//                         FXFormFieldCell: [FXFormDefaultCell class],
+							 @"textLabel.textAlignment": @(NSTextAlignmentLeft),
+							 FXFormFieldAction: ^(UITableViewCell<FXFormFieldCell> *cell) {
+			
+			FXFormField *field = cell.field;
+			FXFormController *formController = field.formController;
+			UITableView *tableView = formController.tableView;
+			
+			[tableView beginUpdates];
+			
+			NSIndexPath *indexPath = [tableView indexPathForCell:cell];
+			FXFormSection *section = formController.sections[indexPath.section];
+			[section addNewField];
 
-        [tableView deselectRowAtIndexPath:indexPath animated:YES];
-        [tableView insertRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
-        
-        [tableView endUpdates];
-        
-        dispatch_async(dispatch_get_main_queue(), ^{
-            
-            [formController tableView:tableView didSelectRowAtIndexPath:indexPath];
-            [tableView selectRowAtIndexPath:indexPath animated:NO scrollPosition:UITableViewScrollPositionNone];
-        });
-        
-    }}];
-    
+			[tableView deselectRowAtIndexPath:indexPath animated:YES];
+			[tableView insertRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
+			
+			[tableView endUpdates];
+			
+			dispatch_async(dispatch_get_main_queue(), ^{
+				
+				[formController tableView:tableView didSelectRowAtIndexPath:indexPath];
+				[tableView selectRowAtIndexPath:indexPath animated:NO scrollPosition:UITableViewScrollPositionNone];
+			});
+			
+		}}];
+	}
+	
     //converts values to an ordered array
     if ([self.field.valueClass isSubclassOfClass:[NSIndexSet class]])
     {
@@ -2339,11 +2343,15 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     FXFormSection *section = [self sectionAtIndex:indexPath.section];
     if ([section.form isKindOfClass:[FXTemplateForm class]])
     {
-        if (indexPath.row == (NSInteger)[section.fields count] - 1)
+		FXFormField	*lastField	= section.fields.lastObject;
+		
+		// Only add an insert line if we've the proper FXFormField (no key) as last item
+        if (lastField.key == nil && (indexPath.row == (NSInteger)[section.fields count] - 1))
         {
             return UITableViewCellEditingStyleInsert;
-        }
-        return UITableViewCellEditingStyleDelete;
+		} else {
+			return UITableViewCellEditingStyleDelete;
+		}
     }
     return UITableViewCellEditingStyleNone;
 }
