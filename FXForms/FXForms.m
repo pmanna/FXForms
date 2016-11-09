@@ -90,7 +90,7 @@ static NSString *const FXFormsException = @"FXFormsException";
 
 static const CGFloat FXFormFieldLabelSpacing = 5;
 static const CGFloat FXFormFieldMinLabelWidth = 97;
-static const CGFloat FXFormFieldMaxLabelWidth = 240;
+static const CGFloat FXFormFieldMaxLabelWidth = 200;
 static const CGFloat FXFormFieldMinFontSize = 12;
 static const CGFloat FXFormFieldPaddingLeft = 10;
 static const CGFloat FXFormFieldPaddingRight = 10;
@@ -2024,7 +2024,10 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
 
 - (FXFormSection *)sectionAtIndex:(NSUInteger)index
 {
-    return self.sections[index];
+	if (index < [self.sections count])
+		return self.sections[index];
+	
+	return nil;
 }
 
 - (NSUInteger)numberOfFieldsInSection:(NSUInteger)index
@@ -2298,13 +2301,37 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     return UITableViewAutomaticDimension;
 }
 
+- (id)transformedValue: (id)value ofCell: (UITableViewCell *)cell forKeyPath: (NSString*)keyPath
+{
+	id	oldValue	= [cell valueForKeyPath: keyPath];
+	
+	if (oldValue != nil) {
+		if ([oldValue isKindOfClass: [UIColor class]] && [value isKindOfClass: [NSArray class]] && [(NSArray *)value count] >= 3) {
+			// Special case, accept array
+			UIColor	*color	= [UIColor colorWithRed: [value[0] doubleValue]
+											 green: [value[1] doubleValue]
+											  blue: [value[2] doubleValue]
+											 alpha: ([value count] > 3 ? [value[3] doubleValue] : 1.0)];
+			return color;
+		} else if ([oldValue isKindOfClass: [UIFont class]] && [value isKindOfClass: [NSString class]]) {
+			NSArray		*components	= [value componentsSeparatedByString:@";"];
+			CGFloat		fontSize	= (components.count > 1 ? [components[1] floatValue] : [UIFont labelFontSize]);
+			NSString	*fontName	= (components.count > 0 ? components[0] : [[UIFont systemFontOfSize: fontSize] fontName]);
+			
+			return [UIFont fontWithName: fontName size:fontSize];
+		}
+	}
+	return value;
+}
+
 - (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath
 {
     FXFormField *field = [self fieldForIndexPath:indexPath];
 
     //configure cell before setting field (in case it affects how value is displayed)
     [field.cellConfig enumerateKeysAndObjectsUsingBlock:^(NSString *keyPath, id value, __unused BOOL *stop) {
-        [cell setValue:value forKeyPath:keyPath];
+        [cell setValue: [self transformedValue: value ofCell: cell forKeyPath: keyPath]
+			forKeyPath: keyPath];
     }];
     
     //set form field
@@ -2312,7 +2339,8 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     
     //configure cell after setting field as well (not ideal, but allows overriding keyboard attributes, etc)
     [field.cellConfig enumerateKeysAndObjectsUsingBlock:^(NSString *keyPath, id value, __unused BOOL *stop) {
-        [cell setValue:value forKeyPath:keyPath];
+		[cell setValue: [self transformedValue: value ofCell: cell forKeyPath: keyPath]
+			forKeyPath: keyPath];
     }];
     
     //forward to delegate
