@@ -2614,9 +2614,13 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
 {
     if ((self = [super initWithStyle:style reuseIdentifier:reuseIdentifier]))
     {
-        self.textLabel.font = [UIFont boldSystemFontOfSize:17];
+		self.textLabel.adjustsFontSizeToFitWidth	= YES;
+		self.textLabel.numberOfLines				= 2;
+        self.textLabel.font = [UIFont boldSystemFontOfSize:16];
         FXFormLabelSetMinFontSize(self.textLabel, FXFormFieldMinFontSize);
-        self.detailTextLabel.font = [UIFont systemFontOfSize:17];
+        self.detailTextLabel.font = [UIFont systemFontOfSize:16];
+		self.detailTextLabel.adjustsFontSizeToFitWidth	= YES;
+		self.detailTextLabel.textColor	= [UIColor lightGrayColor];
         FXFormLabelSetMinFontSize(self.detailTextLabel, FXFormFieldMinFontSize);
         
         if ([[UIDevice currentDevice].systemVersion floatValue] >= 7.0)
@@ -3101,16 +3105,21 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
 + (CGFloat)heightForField:(FXFormField *)field width:(CGFloat)width
 {
     static UITextView *textView;
+	static UILabel *textLabel;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        textView = [[UITextView alloc] init];
-        textView.font = [UIFont systemFontOfSize:17];
-    });
-    
+        textLabel = [[UILabel alloc] init];
+        textLabel.font = [UIFont boldSystemFontOfSize:17];
+		textLabel.numberOfLines	= 0;
+		textView = [[UITextView alloc] init];
+		textView.font = [UIFont systemFontOfSize:17];
+   });
+	
     textView.text = [field fieldDescription] ?: @" ";
     CGSize textViewSize = [textView sizeThatFits:CGSizeMake(width - FXFormFieldPaddingLeft - FXFormFieldPaddingRight, FLT_MAX)];
-    
-    CGFloat height = [field.title length]? 21: 0; // label height
+	
+	textLabel.text	= field.title;
+    CGFloat height = [field.title length] ? [textLabel sizeThatFits:CGSizeMake(width - FXFormFieldPaddingLeft - FXFormFieldPaddingRight, FLT_MAX)].height: 0.0; // label height
     height += FXFormFieldPaddingTop + ceilf(textViewSize.height) + FXFormFieldPaddingBottom;
     return height;
 }
@@ -3118,6 +3127,7 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
 - (void)setUp
 {
     self.selectionStyle = UITableViewCellSelectionStyleNone;
+	self.textLabel.numberOfLines	= 0;
     self.textLabel.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleBottomMargin | UIViewAutoresizingFlexibleRightMargin;
     
     self.textView = [[UITextView alloc] initWithFrame:CGRectMake(0, 0, 320, 21)];
@@ -3146,7 +3156,7 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     
     CGRect labelFrame = self.textLabel.frame;
     labelFrame.origin.y = FXFormFieldPaddingTop;
-    labelFrame.size.width = MIN(MAX([self.textLabel sizeThatFits:CGSizeZero].width, FXFormFieldMinLabelWidth), FXFormFieldMaxLabelWidth);
+	labelFrame.size.width = self.contentView.bounds.size.width - FXFormFieldPaddingLeft - FXFormFieldPaddingRight;
     self.textLabel.frame = labelFrame;
     
     CGRect textViewFrame = self.textView.frame;
