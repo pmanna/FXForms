@@ -2898,6 +2898,16 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     [self.contentView addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self.textField action:NSSelectorFromString(@"becomeFirstResponder")]];
     
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(textDidChange) name:UITextFieldTextDidChangeNotification object:self.textField];
+	
+	UIToolbar		*accessoryView	= [[UIToolbar alloc] initWithFrame: CGRectMake(0.0, 0.0, 200.0, 44.0)];
+	UIBarButtonItem	*flexSpace		= [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target: nil action: nil];
+	UIBarButtonItem	*doneButton		= [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target: self action: @selector(resignFirstResponder)];
+	
+	accessoryView.autoresizingMask	= UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleBottomMargin;
+	accessoryView.items				= @[flexSpace, doneButton];
+	accessoryView.backgroundColor	= [UIColor whiteColor];
+	
+	[self.textField setInputAccessoryView: accessoryView];
 }
 
 - (void)dealloc
@@ -3143,6 +3153,16 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     self.detailTextLabel.numberOfLines = 0;
     
     [self.contentView addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self.textView action:NSSelectorFromString(@"becomeFirstResponder")]];
+	
+	UIToolbar		*accessoryView	= [[UIToolbar alloc] initWithFrame: CGRectMake(0.0, 0.0, 320.0, 44.0)];
+	UIBarButtonItem	*flexSpace		= [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target: nil action: nil];
+	UIBarButtonItem	*doneButton		= [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target: self action: @selector(resignFirstResponder)];
+	
+	accessoryView.autoresizingMask	= UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleBottomMargin;
+	accessoryView.items				= @[flexSpace, doneButton];
+	accessoryView.backgroundColor	= [UIColor whiteColor];
+	
+	[self.textView setInputAccessoryView: accessoryView];
 }
 
 - (void)dealloc
@@ -3414,7 +3434,8 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
 
 @interface FXFormDatePickerCell ()
 
-@property (nonatomic, strong) UIDatePicker *datePicker;
+@property (nonatomic, strong) UIView		*entryView;
+@property (nonatomic, strong) UIDatePicker	*datePicker;
 
 @end
 
@@ -3424,7 +3445,26 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
 - (void)setUp
 {
     self.datePicker = [[UIDatePicker alloc] init];
-    [self.datePicker addTarget:self action:@selector(valueChanged) forControlEvents:UIControlEventValueChanged];
+	self.datePicker.autoresizingMask	= UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+	[self.datePicker setBackgroundColor:[UIColor whiteColor]];
+	[self.datePicker addTarget:self action:@selector(valueChanged) forControlEvents:UIControlEventValueChanged];
+	
+	CGRect	pickerFrame	= self.datePicker.frame;
+	
+	pickerFrame.origin.y	= 44.0;
+	self.datePicker.frame	= pickerFrame;
+	
+	UIToolbar		*accessoryView	= [[UIToolbar alloc] initWithFrame: CGRectMake(0.0, 0.0, pickerFrame.size.width, 44.0)];
+	UIBarButtonItem	*flexSpace		= [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target: nil action: nil];
+	UIBarButtonItem	*doneButton		= [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target: self action: @selector(resignFirstResponder)];
+	
+	accessoryView.autoresizingMask	= UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleBottomMargin;
+	accessoryView.items				= @[flexSpace, doneButton];
+	accessoryView.backgroundColor	= [UIColor whiteColor];
+	
+	self.entryView	= [[UIView alloc] initWithFrame: CGRectMake(0.0, 0.0, pickerFrame.size.width, pickerFrame.size.height + 44.0)];
+	[self.entryView addSubview: accessoryView];
+	[self.entryView addSubview: self.datePicker];
 }
 
 - (void)update
@@ -3457,7 +3497,14 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
 
 - (UIView *)inputView
 {
-    return self.datePicker;
+    return self.entryView;
+}
+
+- (BOOL)resignFirstResponder
+{
+	if (self.field.action) self.field.action(self);
+	
+	return [super resignFirstResponder];
 }
 
 - (void)valueChanged
@@ -3466,8 +3513,6 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     self.detailTextLabel.text = [self.field fieldDescription];
     self.detailTextLabel.accessibilityValue = self.detailTextLabel.text;
     [self setNeedsLayout];
-    
-    if (self.field.action) self.field.action(self);
 }
 
 - (void)didSelectWithTableView:(UITableView *)tableView controller:(__unused UIViewController *)controller
@@ -3664,12 +3709,15 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     self.controller = nil;
 }
 
+#pragma clang diagnostic pop
+
 @end
 
 
 @interface FXFormOptionPickerCell () <UIPickerViewDataSource, UIPickerViewDelegate>
 
-@property (nonatomic, strong) UIPickerView *pickerView;
+@property (nonatomic, strong) UIView		*entryView;
+@property (nonatomic, strong) UIPickerView	*pickerView;
 
 @end
 
@@ -3679,8 +3727,28 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
 - (void)setUp
 {
     self.pickerView = [[UIPickerView alloc] init];
-    self.pickerView.dataSource = self;
+	[self.pickerView setBackgroundColor:[UIColor whiteColor]];
+	self.pickerView.autoresizingMask	= UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+	self.pickerView.showsSelectionIndicator	= YES;
+	self.pickerView.dataSource = self;
     self.pickerView.delegate = self;
+	
+	CGRect	pickerFrame	= self.pickerView.frame;
+	
+	pickerFrame.origin.y	= 44.0;
+	self.pickerView.frame	= pickerFrame;
+	
+	UIToolbar		*accessoryView	= [[UIToolbar alloc] initWithFrame: CGRectMake(0.0, 0.0, pickerFrame.size.width, 44.0)];
+	UIBarButtonItem	*flexSpace		= [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target: nil action: nil];
+	UIBarButtonItem	*doneButton		= [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target: self action: @selector(resignFirstResponder)];
+	
+	accessoryView.autoresizingMask	= UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleBottomMargin;
+	accessoryView.items				= @[flexSpace, doneButton];
+	accessoryView.backgroundColor	= [UIColor whiteColor];
+	
+	self.entryView	= [[UIView alloc] initWithFrame: CGRectMake(0.0, 0.0, pickerFrame.size.width, pickerFrame.size.height + 44.0)];
+	[self.entryView addSubview: accessoryView];
+	[self.entryView addSubview: self.pickerView];
 }
 
 - (void)dealloc
@@ -3712,9 +3780,16 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     return YES;
 }
 
+- (BOOL)resignFirstResponder
+{
+	if (self.field.action) self.field.action(self);
+	
+	return [super resignFirstResponder];
+}
+
 - (UIView *)inputView
 {
-    return self.pickerView;
+    return self.entryView;
 }
 
 - (void)didSelectWithTableView:(UITableView *)tableView controller:(__unused UIViewController *)controller
@@ -3740,9 +3815,30 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     return [self.field optionCount];
 }
 
-- (NSString *)pickerView:(__unused UIPickerView *)pickerView titleForRow:(NSInteger)row forComponent:(__unused NSInteger)component
+- (UIView *)pickerView: (UIPickerView *)pickerView
+			viewForRow: (NSInteger)row
+		  forComponent: (__unused NSInteger)component
+		   reusingView: (UIView *)view
 {
-    return [self.field optionDescriptionAtIndex:row];
+	UILabel* lbl = (UILabel*)view;
+	
+	// Customise Font
+	if (lbl == nil) {
+		CGRect frame = CGRectMake(0.0, 0.0, pickerView.bounds.size.width, 30);
+		
+		lbl = [[UILabel alloc] initWithFrame:frame];
+		lbl.autoresizingMask	= UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+		lbl.textAlignment		= NSTextAlignmentCenter;
+		lbl.backgroundColor		= [UIColor clearColor];
+		lbl.font				= [UIFont systemFontOfSize: 17];
+		
+		lbl.adjustsFontSizeToFitWidth	= YES;
+		FXFormLabelSetMinFontSize(lbl, FXFormFieldMinFontSize);
+	}
+	
+	lbl.text	= [self.field optionDescriptionAtIndex:row];
+	
+	return lbl;
 }
 
 - (void)pickerView:(__unused UIPickerView *)pickerView didSelectRow:(NSInteger)row inComponent:(__unused NSInteger)component
@@ -3752,8 +3848,6 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     self.detailTextLabel.accessibilityValue = self.detailTextLabel.text;
     
     [self setNeedsLayout];
-    
-    if (self.field.action) self.field.action(self);
 }
 
 @end
