@@ -55,6 +55,7 @@ NSString *const FXFormFieldPlaceholder = @"placeholder";
 NSString *const FXFormFieldDefaultValue = @"default";
 NSString *const FXFormFieldOptions = @"options";
 NSString *const FXFormFieldTemplate = @"template";
+NSString *const FXFormFieldTemplateTitle = @"templateTitle";
 NSString *const FXFormFieldValueTransformer = @"valueTransformer";
 NSString *const FXFormFieldAction = @"action";
 NSString *const FXFormFieldSegue = @"segue";
@@ -1103,7 +1104,8 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
         segue = FXFormClassFromString(segue) ?: [segue copy];
     }
     
-    NSAssert(segue != [UIStoryboardPopoverSegue class], @"Unfortunately displaying subcontrollers using UIStoryboardPopoverSegue is not supported, as doing so would require calling private methods. To display using a popover, create a custom UIStoryboard subclass instead.");
+    NSAssert(((UIStoryboardSegue *)segue).destinationViewController.popoverPresentationController != nil,
+			 @"Unfortunately displaying subcontrollers using UIStoryboardPopoverSegue is not supported, as doing so would require calling private methods. To display using a popover, create a custom UIStoryboard subclass instead.");
     
     _segue = segue;
 }
@@ -1483,8 +1485,8 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     //TODO: can we infer default template from existing values instead of having string fallback?
     NSMutableDictionary *field = [NSMutableDictionary dictionaryWithDictionary:self.field.fieldTemplate];
     FXFormPreprocessFieldDictionary(field);
-    field[FXFormFieldTitle] = @""; // title is used for the "Add Item" button, not each field
-    return field;
+	field[FXFormFieldTitle] = field[FXFormFieldTemplateTitle] ?: @""; // title is used for the "Add Item" button, not each field
+	return field;
 }
 
 - (void)updateFields
@@ -1506,10 +1508,10 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
 	
 	// only if there's indeed a title, otherwise skip (array items will be created somewhere else)
 	if (addButtonTitle.length > 0) {
-		[_fields addObject:@{FXFormFieldTitle: addButtonTitle,
-	//                         FXFormFieldCell: [FXFormDefaultCell class],
-							 @"textLabel.textAlignment": @(NSTextAlignmentLeft),
-							 FXFormFieldAction: ^(UITableViewCell<FXFormFieldCell> *cell) {
+		Class addCellClass						= self.field.cellClass;
+		NSMutableDictionary	*addCellDictionary	= [NSMutableDictionary dictionaryWithDictionary: @{FXFormFieldTitle: addButtonTitle,
+																								   @"textLabel.textAlignment": @(NSTextAlignmentCenter),
+																								   FXFormFieldAction: ^(UITableViewCell<FXFormFieldCell> *cell) {
 			
 			FXFormField *field = cell.field;
 			FXFormController *formController = field.formController;
@@ -1520,19 +1522,24 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
 			NSIndexPath *indexPath = [tableView indexPathForCell:cell];
 			FXFormSection *section = formController.sections[indexPath.section];
 			[section addNewField];
-
+			
 			[tableView deselectRowAtIndexPath:indexPath animated:YES];
 			[tableView insertRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
 			
 			[tableView endUpdates];
 			
 			dispatch_async(dispatch_get_main_queue(), ^{
-				
-				[formController tableView:tableView didSelectRowAtIndexPath:indexPath];
 				[tableView selectRowAtIndexPath:indexPath animated:NO scrollPosition:UITableViewScrollPositionNone];
+				[formController tableView:tableView didSelectRowAtIndexPath:indexPath];
 			});
 			
 		}}];
+		
+		if (addCellClass) {
+			addCellDictionary[FXFormFieldCell]	= addCellClass;
+		}
+		
+		[_fields addObject: addCellDictionary];
 	}
 	
     //converts values to an ordered array
@@ -2196,6 +2203,19 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
         [tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
         
         [tableView endUpdates];
+		
+		// Updates the keys for the cells
+		dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * (double)NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+			NSInteger	numRows	= [tableView numberOfRowsInSection:indexPath.section];
+			
+			for (int ii = 0; ii < numRows; ii++) {
+				FXFormBaseCell	*cell	= (FXFormBaseCell *)[tableView cellForRowAtIndexPath: [NSIndexPath indexPathForRow: ii inSection: indexPath.section]];
+				
+				if (cell.editingStyle == editingStyle) {
+					cell.field.key	= [@(ii) description];
+				}
+			}
+		});
     }
 }
 
@@ -2376,7 +2396,8 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
 		// Only add an insert line if we've the proper FXFormField (no key) as last item
         if (lastField.key == nil && (indexPath.row == (NSInteger)[section.fields count] - 1))
         {
-            return UITableViewCellEditingStyleInsert;
+//            return UITableViewCellEditingStyleInsert;
+			return UITableViewCellEditingStyleNone;
 		} else {
 			return UITableViewCellEditingStyleDelete;
 		}
