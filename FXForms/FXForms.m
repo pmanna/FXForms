@@ -3012,18 +3012,18 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
         self.textField.autocapitalizationType = UITextAutocapitalizationTypeSentences;
         self.textField.keyboardType = UIKeyboardTypeDefault;
     }
-    else if ([self.field.type isEqualToString:FXFormFieldTypeUnsigned])
+    else if ([@[FXFormFieldTypeInteger, FXFormFieldTypeUnsigned] containsObject:self.field.type])
     {
         self.textField.autocorrectionType = UITextAutocorrectionTypeNo;
         self.textField.autocapitalizationType = UITextAutocapitalizationTypeNone;
         self.textField.keyboardType = UIKeyboardTypeNumberPad;
         self.textField.textAlignment = NSTextAlignmentRight;
     }
-    else if ([@[FXFormFieldTypeNumber, FXFormFieldTypeInteger, FXFormFieldTypeFloat] containsObject:self.field.type])
+    else if ([@[FXFormFieldTypeNumber, FXFormFieldTypeFloat] containsObject:self.field.type])
     {
         self.textField.autocorrectionType = UITextAutocorrectionTypeNo;
         self.textField.autocapitalizationType = UITextAutocapitalizationTypeNone;
-        self.textField.keyboardType = UIKeyboardTypeNumbersAndPunctuation;
+        self.textField.keyboardType = UIKeyboardTypeDecimalPad;
         self.textField.textAlignment = NSTextAlignmentRight;
     }
     else if ([self.field.type isEqualToString:FXFormFieldTypePassword])
@@ -3215,7 +3215,8 @@ static void FXFormPreprocessFieldDictionary(NSMutableDictionary *dictionary)
     textViewFrame.origin.x += 5;
     textViewFrame.size.width -= 5;
     self.detailTextLabel.frame = textViewFrame;
-    
+	self.detailTextLabel.textAlignment = NSTextAlignmentLeft;
+
     CGRect contentViewFrame = self.contentView.frame;
     contentViewFrame.size.height = self.textView.frame.origin.y + self.textView.frame.size.height + FXFormFieldPaddingBottom;
     self.contentView.frame = contentViewFrame;
